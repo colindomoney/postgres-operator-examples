@@ -1,13 +1,13 @@
 apiVersion: postgres-operator.crunchydata.com/v1beta1
 kind: PostgresCluster
 metadata:
-  name: hippo-ha
+  name: tou-db
 spec:
   image: registry.developers.crunchydata.com/crunchydata/crunchy-postgres:ubi8-16.3-1
   postgresVersion: 16
   instances:
     - name: pgha1
-      replicas: 2
+      replicas: 3
       dataVolumeClaimSpec:
         accessModes:
         - "ReadWriteOnce"
@@ -24,9 +24,36 @@ spec:
                 matchLabels:
                   postgres-operator.crunchydata.com/cluster: hippo-ha
                   postgres-operator.crunchydata.com/instance-set: pgha1
+  users:
+  - name: test-user
+    databases:
+      - test
+    options: "LOGIN"
+  - name: root
+    databases:
+      - test
+      - tou
+      - tou-access
+    options: "SUPERUSER"
+  - name: colind
+    databases:
+      - tou
+      - tou-access
+    options: "LOGIN"
+  monitoring:
+    pgmonitor:
+      exporter:
+        image: registry.developers.crunchydata.com/crunchydata/crunchy-postgres-exporter:ubi8-5.6.1-0
   backups:
     pgbackrest:
       image: registry.developers.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-2.51-1
+      configuration:
+      - secret:
+          name: pgo-gcs-creds
+      global:
+        repo1-retention-full: "7"
+        repo1-retention-full-type: time
+        # repo1-path: /pgbackrest/tou-db/
       repos:
       - name: repo1
         volume:
@@ -36,6 +63,15 @@ spec:
             resources:
               requests:
                 storage: 1Gi
+        schedules:
+          full: "30 */12 * * *"
+          differential: "0 */1 * * *"
+      - name: repo2
+        gcs:
+          bucket: "tou-db-backup"
+        schedules:
+          full: "15 */12 * * *"
+          differential: "45 */1 * * *"
   proxy:
     pgBouncer:
       image: registry.developers.crunchydata.com/crunchydata/crunchy-pgbouncer:ubi8-1.22-1

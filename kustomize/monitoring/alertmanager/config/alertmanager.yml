@@ -31,6 +31,41 @@ receivers:
   - to: 'example@crunchydata.com'
     send_resolved: true
 
+- name: 'slack-notifications'
+  slack_configs:
+  - api_url: 'https://hooks.slack.com/services/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'
+    # Replace with your actual Slack webhook URL. This URL includes the necessary authentication.
+    # Obtain this URL by creating an incoming webhook for your Slack workspace.
+    channel: '#alerts'
+    send_resolved: true
+    # When true, sends a notification when an alert is resolved in addition to when it's triggered.
+    # This helps you know when a problem has been fixed or an alert condition is no longer active.
+    icon_emoji: ':warning:'
+    title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+    text: >-
+      *Alert:* {{ .GroupLabels.alertname }}
+      *Status:* {{ .Status | toUpper }}
+      *Severity:* {{ .CommonLabels.severity }}
+      *Summary:* {{ .CommonAnnotations.summary }}
+      *Description:* {{ .CommonAnnotations.description }}
+
+      *Details:*
+      {{ range .Alerts }}
+        ---
+        {{ range .Labels.SortedPairs }}*{{ .Name }}:* `{{ .Value }}`
+        {{ end }}
+        {{ if .Annotations }}
+        *Annotations:*
+        {{ range .Annotations.SortedPairs }}  • *{{ .Name }}:* {{ .Value }}
+        {{ end }}
+        {{ end }}
+        *Source:* {{ .GeneratorURL }}
+        *Starts At:* {{ .StartsAt }}
+      {{ end }}
+
+      *Alertmanager:* {{ template "__alertmanager" . }}
+
+
 ## Examples of alternative alert receivers. See documentation for more info on how to configure these fully
 #- name: 'pagerduty-dba'
 #  pagerduty_configs:
@@ -56,6 +91,9 @@ route:
     group_wait: 30s
     group_interval: 5m
     repeat_interval: 24h
+    routes:
+      - receiver: 'slack-notifications'
+        continue: true 
 
 ## Example routes to show how to route outgoing alerts based on the content of that alert
 #    routes:

@@ -1,0 +1,24 @@
+apiVersion: postgres-operator.crunchydata.com/v1beta1
+kind: PGAdmin
+metadata:
+  name: tou-db-pgadmin
+  namespace: tou-db
+spec:
+  users:
+  - username: colin.domoney@gmail.com
+    role: Administrator
+    passwordRef:
+      name: pgadmin-password-secret
+      key: tou-db-user
+  dataVolumeClaimSpec:
+    accessModes:
+    - "ReadWriteOnce"
+    resources:
+      requests:
+        storage: 1Gi
+  serverGroups:
+  - name: supply
+    postgresClusterSelector: {}
+
+# Create the secret thusly:
+# kubectl create secret generic pgadmin-password-secret -n tou-db --from-literal=tou-db-user=$PG_ADMIN_USER_PASSWORD secret/pgadmin-password-secret created
