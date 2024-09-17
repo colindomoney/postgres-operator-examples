@@ -51,9 +51,13 @@ spec:
       - secret:
           name: pgo-gcs-creds
       global:
+        archive-timeout: "180" 
         repo1-retention-full: "7"
         repo1-retention-full-type: time
-        # repo1-path: /pgbackrest/tou-db/
+        repo2-retention-full: "7"
+        repo2-retention-full-type: time
+        repo3-retention-full: "7"
+        repo3-retention-full-type: time
       repos:
       - name: repo1
         volume:
@@ -64,14 +68,26 @@ spec:
               requests:
                 storage: 1Gi
         schedules:
-          full: "30 */12 * * *"
-          differential: "0 */1 * * *"
+          full: "0 0,12 * * *"         # Full backup at 00:00 and 12:00
+          incremental: "0 2,4,6,8,10,14,16,18,20,22 * * *"  
       - name: repo2
         gcs:
           bucket: "tou-db-backup"
         schedules:
-          full: "15 */12 * * *"
-          differential: "45 */1 * * *"
+          full: "30 0,12 * * *"        # Full backup at 00:30 and 12:30
+          incremental: "30 1,3,5,7,9,11,13,15,17,19,21,23 * * *" 
+      - name: repo3
+        volume:
+          volumeClaimSpec:
+            accessModes:
+            - "ReadWriteMany"
+            resources:
+              requests:
+                storage: 2Gi
+            storageClassName: nfs-client 
+        schedules:
+          full: "0 6,18 * * *"         # Full backup at 06:00 and 18:00
+          incremental: "0 0,2,4,8,10,12,14,16,20,22 * * *" 
   proxy:
     pgBouncer:
       image: registry.developers.crunchydata.com/crunchydata/crunchy-pgbouncer:ubi8-1.22-1
